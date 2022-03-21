@@ -44,7 +44,6 @@ module.exports.showCampground = async (req, res) => {
     req.flash("error", "Cannot find the campground you are looking for!!!");
     return res.redirect("/campgrounds");
   }
-  console.log(campground.images);
   res.render("campgrounds/show.ejs", { campground });
 };
 
@@ -60,6 +59,7 @@ module.exports.renderEditForm = async (req, res) => {
 
 module.exports.updateCampground = async (req, res) => {
   const { id } = req.params;
+  console.log(req.body);
   const campground = await Campground.findByIdAndUpdate(id, {
     ...req.body.campground,
   });
@@ -69,6 +69,21 @@ module.exports.updateCampground = async (req, res) => {
   }));
   campground.images.push(...imgs);
   await campground.save();
+  if (req.body.deleteImages) {
+    for (let filename of req.body.deleteCampground) {
+      await cloudinary.uploader.destroy(filename);
+    }
+    await campground.updateOne({
+      $pull: {
+        images: {
+          filename: {
+            $in: req.body.deleteImages,
+          },
+        },
+      },
+    });
+    console.log(campground);
+  }
   console.log(campground.images);
   req.flash("success", "Successfully updated campground!!!");
   res.redirect(`/campgrounds/${campground._id}`);
